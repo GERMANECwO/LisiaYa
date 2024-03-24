@@ -329,13 +329,15 @@ def end_story(message: Message):
     system_content_genre = get_genre(user_id)
     system_content_character = get_character(user_id)
     processed_response = get_processed_response(user_id)
-
-    gpt = GPT(system_content=f"Жанр:{system_content_genre}, персонаж:{system_content_character}",
-              processed_response=processed_response)
-
+    logging.info(f"Полученный текст от пользователя: {message.text}")
+    user_request = f'Напиши концовку истории'
+    system_content = f"Жанр:{system_content_genre}, персонаж:{system_content_character}"
+    assistant_content = f"История начинается {processed_response}"
+    gpt = GPT(processed_response=processed_response)
     response_message = bot.reply_to(message, text="Промт принят! Обрабатываю запрос…")
-    user_request = 'Заверши историю.'
-    request = gpt.make_prompt(user_request, processed_response)
+    print(system_content)
+    request = gpt.make_prompt(user_request=user_request, system_content=system_content,
+                              assistant_content=assistant_content)
     response = gpt.send_request(request)
     processed_response = gpt.process_resp(request, response)
 
@@ -368,10 +370,12 @@ def continue_previous_response(message: Message):
     processed_response = get_processed_response(user_id)
     logging.info(f"Полученный текст от пользователя: {message.text}")
     user_request = f'{get_user_request(user_id)} {message.text}'
-    gpt = GPT(system_content=f"Жанр:{system_content_genre}, персонаж:{system_content_character}",
-              processed_response=processed_response)
+    system_content = f"Жанр:{system_content_genre}, персонаж:{system_content_character}"
+    assistant_content = f"История начинается {processed_response}"
+    gpt = GPT(processed_response=processed_response)
     response_message = bot.reply_to(message, text="Промт принят! Обрабатываю запрос…")
-    request = gpt.make_prompt(user_request, processed_response)
+    print(system_content)
+    request = gpt.make_prompt(user_request=user_request, system_content=system_content, assistant_content=assistant_content)
     response = gpt.send_request(request)
     processed_response = gpt.process_resp(request, response)
 

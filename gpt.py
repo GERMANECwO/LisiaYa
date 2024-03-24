@@ -7,10 +7,8 @@ from database import is_value_in_table
 
 
 class GPT:
-    def __init__(self, system_content, processed_response):
-        self.assistant_content = f"История начинается {processed_response}"
-        self.system_content = system_content
-        self.URL = 'http://localhost:1234/v1/chat/completions'
+    def __init__(self, processed_response):
+        self.URL = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
         self.HEADERS = {"Content-Type": "application/json"}
         self.MAX_TOKENS = 200
         self.history = []  # Список для хранения истории общения
@@ -113,8 +111,8 @@ class GPT:
 
     # Выполняем запрос к YandexGPT
     @staticmethod
-    def make_prompt(self, user_request):
-        iam_token = '<твой IAM-токен>'  # Токен для доступа к YandexGPT
+    def make_prompt(user_request, system_content, assistant_content):
+        iam_token = 't1.9euelZqKyZmUnc-am4-OnY_GkMaJmu3rnpWalseZi8qZjJKZyZSJlJKTx8nl8_dVEwNQ-e9OXio5_t3z9xVCAFD5705eKjn-zef1656Vms-OkJSYxpmSzc6RyMfOlIuL7_zF656Vms-OkJSYxpmSzc6RyMfOlIuLveuelZrJkJ2RlMnKlJWPj8_KjIzLkLXehpzRnJCSj4qLmtGLmdKckJKPioua0pKai56bnoue0oye.ZRaLRVkJILN1NMNMWLPu5J3F3L1EkCmJTVEqt9fOQtbpvQEorkjYYePoKjZ7oroi5H7vvgVJRCj9CAq_nDqbCg'  # Токен для доступа к YandexGPT
         folder_id = '<b1gau52co3kb6aqu6u6q>'  # Folder_id для доступа к YandexGPT
         headers = {
             'Authorization': f'Bearer {iam_token}',
@@ -125,27 +123,28 @@ class GPT:
             "completionOptions": {
                 "stream": False,
                 "temperature": 0.6,
-                "maxTokens": "200"
+                "maxTokens": 2
             },
             "messages": [
-                 {"role": "system", "content": self.system_content},
-                 {"role": "user", "content": user_request},
-                 {"role": "assistant", "content": self.assistant_content}
-             ]
+                {"role": "system", "content": system_content},
+                {"role": "user", "content": user_request},
+                {"role": "assistant", "content": assistant_content}
+            ]
         }
         response = requests.post("https://llm.api.cloud.yandex.net/foundationModels/v1/completion",
                                  headers=headers,
                                  json=data)
         if response.status_code == 200:
             text = response.json()["result"]["alternatives"][0]["message"]["text"]
+            conn = sqlite3.connect('sqlite3.db')
+            cur = conn.cursor()
+            cur.execute("INSERT INTO users (user_request, processed_response) VALUES (?, ?)",
+                        (user_request, text))
+            conn.commit()
+            conn.close()
             return text
         else:
-            raise RuntimeError(
-                'Invalid response received: code: {}, message: {}'.format(
-                    {response.status_code}, {response.text}
-                )
-            )
-
+            return f"Ошибка при отправке запроса: {response.status_code}"
 
 def get_user_session_id(user_id):
     conn = sqlite3.connect('sqlite3.db')
